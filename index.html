@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Pomodoro Timer</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6fb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+#timer {
+    font-size: 2.5rem;
+    margin: 15px 0;
+}
+
+.progress {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 100%;
+    background: #6366f1;
+    transition: width 1s linear;
+}
+
+button {
+    padding: 8px 12px;
+    margin: 5px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.primary { background: #6366f1; color: white; }
+.danger { background: #ef4444; color: white; }
+
+.settings input {
+    width: 50px;
+    margin: 0 5px;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Pomodoro Timer</h2>
+
+<div id="phase">Focus</div>
+<div id="timer">25:00</div>
+
+<div class="progress">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<button class="primary" onclick="toggleTimer()">Start / Pause</button>
+<button class="danger" onclick="resetPomodoro()">Reset</button>
+
+<div class="stats" id="stats">
+    <p><strong>Completed Sessions:</strong> <span id="sessions">0</span></p>
+    <p><strong>Total Focus Time:</strong> <span id="focusTime">0 mins</span></p>
+</div>
+
+<button onclick="toggleFocusMode()">Focus Mode</button>
+
+<div class="settings">
+    <h4>Settings</h4>
+    Focus:
+    <input type="number" id="focusInput" value="25"> min
+    Break:
+    <input type="number" id="breakInput" value="5"> min
+    <button onclick="saveSettings()">Save</button>
+</div>
+</div>
+
+<script>
+/* ---------- CONFIG ---------- */
+const DEFAULTS = {
+    focus: 25,
+    break: 5,
+    longBreak: 15
+};
+
+/* ---------- STATE ---------- */
+let state = JSON.parse(localStorage.getItem("pomodoro")) || {
+    phase: "focus",
+    secondsLeft: DEFAULTS.focus * 60,
+    focusSessions: 0,
+    completedSessions: 0,
+    focusTime: 0,
+    date: new Date().toDateString(),
+    settings: DEFAULTS
+};
+
+let timer = null;
+
+/* ---------- UTIL ---------- */
+function format(sec) {
+    return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+}
+
+function save() {
+    localStorage.setItem("pomodoro", JSON.stringify(state));
+}
+
+function notify(msg) {
+    if (Notification.permission === "granted") {
+        new Notification(msg);
+    }
+}
+
+/* ---------- DAILY RESET ---------- */
+if (state.date !== new Date().toDateString()) {
+    state.completedSessions = 0;
+    state.focusTime = 0;
+    state.focusSessions = 0;
+    state.date = new Date().toDateString();
+}
+
+/* ---------- UI ---------- */
+function updateUI() {
+    document.getElementById("phase").innerText = state.phase.toUpperCase();
+    document.getElementById("timer").innerText = format(state.secondsLeft);
+    document.getElementById("sessions").innerText = state.completedSessions;
+    document.getElementById("focusTime").innerText = state.focusTime + " mins";
+
+    const total =
+        state.phase === "focus" ? state.settings.focus * 60 :
+        state.phase === "break" ? state.settings.break * 60 :
+        state.settings.longBreak * 60;
+
+    document.getElementById("progressBar").style.width =
+        (state.secondsLeft / total * 100) + "%";
+}
+
+/* ---------- TIMER ---------- */
+function toggleTimer() {
+    if (timer) {
+        clearInterval(timer);
+        timer = null;
+        return;
+    }
+
+    timer = setInterval(() => {
+        state.secondsLeft--;
+
+        if (state.secondsLeft <= 0) {
+            if (state.phase === "focus") {
+                state.completedSessions++;
+                state.focusSessions++;
+                state.focusTime += state.settings.focus;
+                notify("Focus complete!");
+
+                if (state.focusSessions % 4 === 0) {
+                    state.phase = "long break";
+                    state.secondsLeft = state.settings.longBreak * 60;
+                } else {
+                    state.phase = "break";
+                    state.secondsLeft = state.settings.break * 60;
+                }
+            } else {
+                notify("Break over!");
+                state.phase = "focus";
+                state.secondsLeft = state.settings.focus * 60;
+            }
+        }
+
+        save();
+        updateUI();
+    }, 1000);
+}
+
+/* ---------- SETTINGS ---------- */
+function saveSettings() {
+    state.settings.focus = +focusInput.value;
+    state.settings.break = +breakInput.value;
+    state.secondsLeft = state.settings.focus * 60;
+    save();
+    updateUI();
+}
+
+/* ---------- FOCUS MODE ---------- */
+function toggleFocusMode() {
+    document.getElementById("stats").classList.toggle("hidden");
+}
+
+/* ---------- RESET ---------- */
+function resetPomodoro() {
+    clearInterval(timer);
+    timer = null;
+
+    state.completedSessions = 0;
+    state.focusSessions = 0;
+    state.focusTime = 0;
+    state.phase = "focus";
+    state.secondsLeft = state.settings.focus * 60;
+
+    save();
+    updateUI();
+}
+
+/* ---------- INIT ---------- */
+Notification.requestPermission();
+updateUI();
+</script>
+
+</body>
+</html>
