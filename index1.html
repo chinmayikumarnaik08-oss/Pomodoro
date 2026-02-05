@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Mood Tracker</title>
+
+    <style>
+        /* Basic page styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Main container */
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 15px;
+        }
+
+        /* Mood buttons */
+        .moods {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mood-btn {
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            background-color: #eef1f7;
+            transition: transform 0.15s ease, background-color 0.2s ease;
+        }
+
+        /* Scale animation on click */
+        .mood-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Highlight selected mood */
+        .active {
+            background-color: #a5b4fc;
+            color: white;
+        }
+
+        /* Message section */
+        .message {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        /* Summary section */
+        .summary {
+            text-align: left;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: gray;
+            margin-top: 5px;
+        }
+
+        /* Reset button */
+        .reset-btn {
+            margin-top: 15px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: #ef4444;
+            color: white;
+            cursor: pointer;
+        }
+
+        .reset-btn:hover {
+            background-color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Daily Mood Tracker</h1>
+
+    <!-- Mood buttons -->
+    <div class="moods">
+        <button class="mood-btn" onclick="selectMood('Very Happy')">😁 Very Happy</button>
+        <button class="mood-btn" onclick="selectMood('Happy')">🙂 Happy</button>
+        <button class="mood-btn" onclick="selectMood('Neutral')">😐 Neutral</button>
+        <button class="mood-btn" onclick="selectMood('Sad')">🙁 Sad</button>
+        <button class="mood-btn" onclick="selectMood('Very Sad')">😢 Very Sad</button>
+    </div>
+
+    <!-- Selected mood message -->
+    <div class="message" id="message">Select a mood</div>
+
+    <!-- Timestamp -->
+    <div class="timestamp" id="time"></div>
+
+    <!-- Mood count summary -->
+    <div class="summary" id="summary"></div>
+
+    <!-- Reset button -->
+    <button class="reset-btn" onclick="resetTracker()">Reset Today</button>
+</div>
+
+<script>
+    // Store mood counts for the session
+    const moodCounts = {
+        "Very Happy": 0,
+        "Happy": 0,
+        "Neutral": 0,
+        "Sad": 0,
+        "Very Sad": 0
+    };
+
+    // Handle mood selection
+    function selectMood(mood) {
+        // Increase count for selected mood
+        moodCounts[mood]++;
+
+        // Update message
+        document.getElementById("message").innerText =
+            `You're feeling ${mood.toLowerCase()} today!`;
+
+        // Update timestamp
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.getElementById("time").innerText =
+            `Last mood selected at ${timeString}`;
+
+        // Highlight selected button
+        document.querySelectorAll(".mood-btn").forEach(btn => {
+            btn.classList.remove("active");
+            if (btn.innerText.includes(mood)) {
+                btn.classList.add("active");
+            }
+        });
+
+        // Update summary counts
+        updateSummary();
+    }
+
+    // Update summary section
+    function updateSummary() {
+        let summaryHTML = "<strong>Today's Mood Count:</strong><br>";
+        for (let mood in moodCounts) {
+            summaryHTML += `${mood}: ${moodCounts[mood]}<br>`;
+        }
+        document.getElementById("summary").innerHTML = summaryHTML;
+    }
+
+    // Reset everything
+    function resetTracker() {
+        // Reset counts
+        for (let mood in moodCounts) {
+            moodCounts[mood] = 0;
+        }
+
+        // Clear UI
+        document.getElementById("message").innerText = "Select a mood";
+        document.getElementById("summary").innerHTML = "";
+        document.getElementById("time").innerText = "";
+
+        // Remove highlights
+        document.querySelectorAll(".mood-btn").forEach(btn => {
+            btn.classList.remove("active");
+        });
+    }
+</script>
+
+</body>
+<!-- Pomodoro Tracker Enhancements -->
+<div id="pomodoro-stats" style="padding:20px; border-top:1px solid #ddd; margin-top:2rem;">
+    <h2>Pomodoro Productivity Stats (Today)</h2>
+    <div>
+        <strong>Total Focus Time:</strong> <span id="total-focus-time">0 mins</span><br>
+        <strong>Completed Sessions:</strong> <span id="completed-sessions">0</span>
+    </div>
+    <button onclick="resetPomodoroStats()" style="margin-top: 1em;">Reset Stats</button>
+</div>
+
+<script>
+// Simple local tracking (use localStorage for persistence if desired)
+let pomodoroStats = {
+    completedSessions: 0,
+    focusTime: 0, // in minutes
+};
+
+// Typically, one Pomodoro session = 25 mins focus
+const FOCUS_MINUTES_PER_SESSION = 25;
+
+// Dummy function to simulate completion (call from timer etc.)
+function completePomodoroSession() {
+    pomodoroStats.completedSessions += 1;
+    pomodoroStats.focusTime += FOCUS_MINUTES_PER_SESSION;
+    updatePomodoroStatsUI();
+}
+
+// Update the stats UI
+function updatePomodoroStatsUI() {
+    document.getElementById('total-focus-time').innerText = 
+        pomodoroStats.focusTime + ' mins';
+    document.getElementById('completed-sessions').innerText = 
+        pomodoroStats.completedSessions;
+}
+
+// Reset stats
+function resetPomodoroStats() {
+    pomodoroStats.completedSessions = 0;
+    pomodoroStats.focusTime = 0;
+    updatePomodoroStatsUI();
+}
+
+// Initialize UI on page load
+updatePomodoroStatsUI();
+</script>
+</html>
